@@ -8,10 +8,10 @@ import asyncio
 from utils import load_vids_dic, save_vids_dic
 
 class YoutubeTranscriptRetriever():
-    def __init__(self, channel_id, yt_api_key, savepath=None, retry_failed=False):
+    def __init__(self, channel_id, yt_api_key, transcript_dir=None, retry_failed=False):
         self.CHANNEL_ID = channel_id
         self.YT_API_KEY = yt_api_key
-        self.savepath = savepath
+        self.transcript_dir = transcript_dir
         self.UPLOAD_ID = self.get_upload_id()
         self.vids_dic, _ = self.get_video_ids()
         self.retry_failed = retry_failed
@@ -60,12 +60,12 @@ class YoutubeTranscriptRetriever():
         if vids_dic:
             self.vids_dic = vids_dic
         """ Scrapes, parses, and saves all transcripts for a given videoID dictionary """
-        if self.savepath:
+        if self.transcript_dir:
             # Create directories
-            os.makedirs(os.path.join(self.savepath, "raw"), exist_ok=True)
-            os.makedirs(os.path.join(self.savepath, "failed"), exist_ok=True)
-            transcript_savepath = os.path.join(self.savepath, "raw", f"{self.CHANNEL_ID}.json")
-            failed_savepath = os.path.join(self.savepath, "failed", f"{self.CHANNEL_ID}.json")
+            os.makedirs(os.path.join(self.transcript_dir, "raw"), exist_ok=True)
+            os.makedirs(os.path.join(self.transcript_dir, "failed"), exist_ok=True)
+            transcript_savepath = os.path.join(self.transcript_dir, "raw", f"{self.CHANNEL_ID}.json")
+            failed_savepath = os.path.join(self.transcript_dir, "failed", f"{self.CHANNEL_ID}.json")
         else:
             # If no save path provided, use default save path
             transcript_savepath = f"./transcripts/raw/{self.CHANNEL_ID}.json"
@@ -139,7 +139,7 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("channel_id", help="Channel ID of Youtube channel")
     parser.add_argument("-k", "--yt_api_key", help="Youtube API Key")
-    parser.add_argument("-s", "--savepath", help="Directory to save raw/failed transcript JSON files")
+    parser.add_argument("-s", "--transcript_dir", help="Directory to save raw/failed transcript JSON files")
     parser.add_argument("-r", "--retry_failed", action="store_true", help="Retry failed transcripts")
     args = parser.parse_args()
     # Check for valid youtube API key and savepath
@@ -149,9 +149,9 @@ async def main():
         else:
             args.yt_api_key = YT_API_KEY
 
-    if args.savepath:
+    if args.transcript_dir:
         try:
-            os.makedirs(os.path.dirname(args.savepath), exist_ok=False)
+            os.makedirs(os.path.dirname(args.transcript_dir), exist_ok=False)
         except:
             raise RuntimeError("Invalid savepath directory specified.")
     # Get transcripts

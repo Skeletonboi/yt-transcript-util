@@ -4,7 +4,6 @@ import requests
 from playwright.async_api import async_playwright
 import asyncio
 import json
-import traceback
 from urllib.parse import urlparse, parse_qs
 import pyperclip
 
@@ -107,7 +106,6 @@ class YoutubeScraper():
             ts, is_english = self._parse_transcript_json(response, vid_url)
             return ts, vid_url, is_english
         except Exception as e:
-            # traceback.print_exc()
             raise RuntimeError(e)
     
     
