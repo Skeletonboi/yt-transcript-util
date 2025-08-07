@@ -129,7 +129,7 @@ async def main(vid_id=None, vid_url=None, copy=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("vid_id", help="Youtube video ID")
+    parser.add_argument("-v", "--vid_id", help="Youtube video ID")
     parser.add_argument("-u", "--vid_url", help="Youtube video URL")
     parser.add_argument("-c", "--copy", action="store_true", help="Flag to copy output to user clipboard")
     args = parser.parse_args()
