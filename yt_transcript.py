@@ -8,10 +8,10 @@ import asyncio
 from utils import load_vids_dic, save_vids_dic
 
 class YoutubeTranscriptRetriever():
-    def __init__(self, channel_id, yt_api_key, transcript_dir=None, retry_failed=False):
+    def __init__(self, channel_id, yt_api_key, transcript_dir=None,  retry_failed=False):
         self.CHANNEL_ID = channel_id
         self.YT_API_KEY = yt_api_key
-        self.transcript_dir = transcript_dir
+        self.transcript_dir = transcript_dir if transcript_dir else './transcripts'
         self.UPLOAD_ID = self.get_upload_id()
         self.vids_dic, _ = self.get_video_ids()
         self.retry_failed = retry_failed
@@ -60,17 +60,14 @@ class YoutubeTranscriptRetriever():
         if vids_dic:
             self.vids_dic = vids_dic
         """ Scrapes, parses, and saves all transcripts for a given videoID dictionary """
-        if self.transcript_dir:
-            # Create directories
-            os.makedirs(os.path.join(self.transcript_dir, "raw"), exist_ok=True)
-            os.makedirs(os.path.join(self.transcript_dir, "failed"), exist_ok=True)
-            transcript_savepath = os.path.join(self.transcript_dir, "raw", f"{self.CHANNEL_ID}.json")
-            failed_savepath = os.path.join(self.transcript_dir, "failed", f"{self.CHANNEL_ID}.json")
-        else:
-            # If no save path provided, use default save path
-            transcript_savepath = f"./transcripts/raw/{self.CHANNEL_ID}.json"
-            failed_savepath = f"./transcripts/failed/{self.CHANNEL_ID}.json"
-        
+        # Creates transcript save directories if doesn't exist
+        os.makedirs(os.path.join(self.transcript_dir, "raw"), exist_ok=True)
+        os.makedirs(os.path.join(self.transcript_dir, "failed"), exist_ok=True)
+
+        transcript_savepath = os.path.join(self.transcript_dir, "raw", f"{self.CHANNEL_ID}.json")
+        failed_savepath = os.path.join(self.transcript_dir, "failed", f"{self.CHANNEL_ID}.json")
+
+        # Load existing transcript files (if exists)
         file_vids_dic = load_vids_dic(transcript_savepath)
         failed_vids_dic = load_vids_dic(failed_savepath)
         scraper = await YoutubeScraper.create()
