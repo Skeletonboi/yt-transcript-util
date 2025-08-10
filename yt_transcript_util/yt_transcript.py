@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from .yt_scraper import YoutubeScraper
 import json
 import asyncio
-from utils import load_vids_dic, save_vids_dic
+from .utils import load_vids_dic, save_vids_dic
 
 class YoutubeTranscriptRetriever():
     def __init__(self, channel_id, yt_api_key, transcript_dir=None,  retry_failed=False):
