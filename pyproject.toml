@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "yt-transcript-util"
+name = "yt_transcript_util"
 version = "1.0.0"
 authors = [
     {name = "Victor Yip", email = "yp.victor@outlook.com"},
