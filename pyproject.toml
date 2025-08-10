@@ -39,3 +39,6 @@ dependencies = [
 
 [project.scripts]
 yt-transcript = "yt_transcript_util.yt_transcript:main"
+
+[tool.setuptools]
+py-modules = ["utils", "yt_scraper", "yt_transcript"]
