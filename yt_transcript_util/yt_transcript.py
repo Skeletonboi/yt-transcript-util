@@ -2,7 +2,7 @@ import os
 import argparse
 import requests
 from dotenv import load_dotenv
-from .syt_scraper import YoutubeScraper
+from .yt_scraper import YoutubeScraper
 import json
 import asyncio
 from utils import load_vids_dic, save_vids_dic
