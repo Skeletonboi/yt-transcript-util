@@ -35,6 +35,9 @@ class YoutubeTranscriptRetriever():
         init_vid_url = f'https://www.googleapis.com/youtube/v3/playlistItems?playlistId={self.UPLOAD_ID}&key={self.YT_API_KEY}&part=snippet&maxResults=50'
         page_details = requests.get(init_vid_url)
 
+        if page_details.json().get('error', None):
+            raise RuntimeError(f"Error encountered pulling video ID list. Response: {page_details.json()}")
+
         vids_dic = {}
         n_video_ids = 0
 
