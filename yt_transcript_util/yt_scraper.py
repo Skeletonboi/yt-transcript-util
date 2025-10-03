@@ -178,17 +178,26 @@ class YoutubeScraper():
             try:
                 with open(cookies_save_dir, 'w') as f:
                     json.dump(cookies, f, indent=2)
+                print(f"Authenticated cookies.json saved to {cookies_save_dir}")
             except Exception as e:
                 raise RuntimeError(f"Unable to save cookies.json file. \n{e}")
 
         return cookies
             
-async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
+async def main(vid_id=None, vid_url=None, copy=False, cookies_path=None, auth=False):
+    # Check if authentication-only session
+    if auth:
+        if not cookies_path:
+            raise RuntimeError("No cookies.json savepath provided!")
+        else:
+            _ = YoutubeScraper.generate_cookies(cookies_path)
+        return
+    # Parse url if provided
     if not vid_id and not vid_url:
         raise RuntimeError("Must provide either vid_id or vid_url")
     elif vid_url:
         vid_id = urlparse(vid_url).query[2:]
-    
+    # Utilize cookies.json if provided 
     cookies = None
     if cookies_path:
         with open(cookies_path) as f:
@@ -196,7 +205,7 @@ async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
                 cookies = json.load(f)
             except Exception as e:
                 raise RuntimeError(f"Unable to load cookies file. \n{e}")
-
+    # Get video transcript
     scraper = await YoutubeScraper.create(cookies)
     try:
         ts, url, is_english, source = await scraper.get_transcript(vid_id)
@@ -205,7 +214,7 @@ async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
         print(f'Error: {e}, Vid ID: https://www.youtube.com/watch?v={vid_id}')
 
     await scraper.close()
-
+    # Save to clipboard
     if copy:
         pyperclip.copy(ts)
     
@@ -217,6 +226,7 @@ if __name__ == "__main__":
     parser.add_argument("-url", "--vid_url", help="Youtube video URL")
     parser.add_argument("-c", "--copy", action="store_true", help="Copy output to user clipboard")
     parser.add_argument("-cookies", "--cookies_path", help="Optional cookies.json file for user authentication")
+    parser.add_argument("-auth", "--auth", action="store_true", help="Manual YouTube authentication session for cookies generation")
     args = parser.parse_args()
 
     asyncio.run(main(**vars(args)))
