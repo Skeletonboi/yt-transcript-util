@@ -16,7 +16,7 @@ class YoutubeScraper():
         self.page = page
 
     @classmethod
-    async def create(cls, cookies=None):
+    async def create(cls, cookies_path: str = None):
         p = await async_playwright().start()
         browser = await p.chromium.launch(headless=True, args=['--mute-audio', '--disable-blink-features=AutomationControlled'])
         context = await browser.new_context(
@@ -26,7 +26,12 @@ class YoutubeScraper():
             # locale='en-US',
             # timezone_id='America/New_York')
         )
-        if cookies:
+        if cookies_path:
+            try:
+                with open(cookies_path) as f:
+                    cookies = json.load(f)
+            except Exception as e:
+                raise RuntimeError(f"Unable to load cookies file. \n{e}")
             await context.add_cookies(cookies)
         page = await context.new_page()
         return cls(p, browser, context, page)
@@ -197,16 +202,8 @@ async def main(vid_id=None, vid_url=None, copy=False, cookies_path=None, auth=Fa
         raise RuntimeError("Must provide either vid_id or vid_url")
     elif vid_url:
         vid_id = urlparse(vid_url).query[2:]
-    # Utilize cookies.json if provided 
-    cookies = None
-    if cookies_path:
-        with open(cookies_path) as f:
-            try:
-                cookies = json.load(f)
-            except Exception as e:
-                raise RuntimeError(f"Unable to load cookies file. \n{e}")
     # Get video transcript
-    scraper = await YoutubeScraper.create(cookies)
+    scraper = await YoutubeScraper.create(cookies_path)
     try:
         ts, url, is_english, source = await scraper.get_transcript(vid_id)
         print(f"Transcript Excerpt: {ts[:50]}..., Vid URL: {url}, Is English: {is_english}, Is ts: {source.get('ts', False)}, Is tt: {source.get('tt', False)}")
