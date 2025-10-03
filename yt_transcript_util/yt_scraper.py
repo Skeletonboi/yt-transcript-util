@@ -135,7 +135,7 @@ class YoutubeScraper():
 
         return " ".join(transcript)
 
-    def _timedtext_is_english(self, timedtext_url):
+    def _is_timedtext_english(self, timedtext_url):
         return bool(re.search(r'hl=(en).*', timedtext_url))
 
     async def get_transcript(self, vid_id):
@@ -149,7 +149,7 @@ class YoutubeScraper():
                 source['ts'] = True
             elif captured_data.get('timedtext_url', None):
                 tt_json = self._replay_timedtext_request(captured_data.get('timedtext_url'))
-                is_english = self._timedtext_is_english(captured_data.get('timedtext_url'))
+                is_english = self._is_timedtext_english(captured_data.get('timedtext_url'))
                 ts = self._parse_timextext_json(tt_json, vid_url)
                 source['tt'] = True
             return ts, vid_url, is_english, source
