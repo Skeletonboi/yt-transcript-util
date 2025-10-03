@@ -97,7 +97,7 @@ import json
 from yt_transcript_util.yt_scraper import YoutubeScraper
 
 # Generate and save cookies.json
-COOKIES_PATH = "./cookies.json
+COOKIES_PATH = "./cookies.json"
 YoutubeScraper.generate_cookies(COOKIES_PATH)
 
 # Add cookies savepath to scraper 
