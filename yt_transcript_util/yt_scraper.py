@@ -18,7 +18,7 @@ class YoutubeScraper():
     @classmethod
     async def create(cls, cookies=None):
         p = await async_playwright().start()
-        browser = await p.chromium.launch(headless=False, args=['--mute-audio', '--disable-blink-features=AutomationControlled'])
+        browser = await p.chromium.launch(headless=True, args=['--mute-audio', '--disable-blink-features=AutomationControlled'])
         context = await browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
             # EXTRA SPOOFING DETAILS (NOT NECCESSARY BUT JUST IN CASE)
@@ -156,7 +156,33 @@ class YoutubeScraper():
         except Exception as e:
             raise RuntimeError(e)
     
+    @staticmethod
+    async def generate_cookies(cookies_save_dir: str = None):
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=False, args=['--mute-audio', '--disable-blink-features=AutomationControlled'])
+            context = await browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36')
+            page = await context.new_page()
 
+            try:
+                await page.goto('https://www.youtube.com/account')
+                input("Press 'Enter' here after logging in...")
+
+                cookies = await context.cookies()
+            except Exception as e:
+                raise RuntimeError(f"Unable to generate cookies using Playwright. \n{e}")
+
+            await browser.close()
+
+        if cookies_save_dir:
+            try:
+                with open(cookies_save_dir, 'w') as f:
+                    json.dump(cookies, f, indent=2)
+            except Exception as e:
+                raise RuntimeError(f"Unable to save cookies.json file. \n{e}")
+
+        return cookies
+            
 async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
     if not vid_id and not vid_url:
         raise RuntimeError("Must provide either vid_id or vid_url")
@@ -169,7 +195,7 @@ async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
             try:
                 cookies = json.load(f)
             except Exception as e:
-                raise RuntimeError("Unable to load cookies file.")
+                raise RuntimeError(f"Unable to load cookies file. \n{e}")
 
     scraper = await YoutubeScraper.create(cookies)
     try:
@@ -182,6 +208,8 @@ async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
 
     if copy:
         pyperclip.copy(ts)
+    
+    return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
