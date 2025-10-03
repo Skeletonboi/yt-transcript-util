@@ -16,9 +16,9 @@ class YoutubeScraper():
         self.page = page
 
     @classmethod
-    async def create(cls):
+    async def create(cls, cookies=None):
         p = await async_playwright().start()
-        browser = await p.chromium.launch(headless=True, args=['--mute-audio', '--disable-blink-features=AutomationControlled'])
+        browser = await p.chromium.launch(headless=False, args=['--mute-audio', '--disable-blink-features=AutomationControlled'])
         context = await browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
             # EXTRA SPOOFING DETAILS (NOT NECCESSARY BUT JUST IN CASE)
@@ -26,6 +26,8 @@ class YoutubeScraper():
             # locale='en-US',
             # timezone_id='America/New_York')
         )
+        if cookies:
+            await context.add_cookies(cookies)
         page = await context.new_page()
         return cls(p, browser, context, page)
 
@@ -58,15 +60,17 @@ class YoutubeScraper():
                 raise RuntimeError(f"Unable to unroute Playwright page: {e}")
 
             try:
+                # Attempt to intercept get_transcript request from clicking "Show Transcript"
                 await self.page.route("**/*", handle_transcript_request)
                 await self.page.goto(video_url)
 
                 # Expand description
-                await self.page.get_by_role("button", name="...more").click(timeout=1000)
+                await self.page.get_by_role("button", name="...more").click(timeout=3000)
 
                 # Transcript button 
-                await self.page.get_by_role("button", name="Show transcript").click(timeout=1000)
+                await self.page.get_by_role("button", name="Show transcript").click(timeout=3000)
             except:
+                # Fallback to intercepting timedtext request from closed captions (IP rate-limited by Google/Youtube) 
                 try:
                     await self.page.route("**/*", handle_timedtext_request)
                     await self.page.locator('#movie_player').hover()
@@ -135,31 +139,42 @@ class YoutubeScraper():
         return bool(re.search(r'hl=(en).*', timedtext_url))
 
     async def get_transcript(self, vid_id):
+        source = {}
         vid_url = f"https://www.youtube.com/watch?v={vid_id}"
         try:
             captured_data = await self._intercept_requests(vid_url)
             if captured_data.get('get_transcript_params', None):
                 ts_json = self._replay_get_transcript_request(captured_data.get('get_transcript_params'))
                 ts, is_english = self._parse_transcript_json(ts_json, vid_url)
+                source['ts'] = True
             elif captured_data.get('timedtext_url', None):
                 tt_json = self._replay_timedtext_request(captured_data.get('timedtext_url'))
                 is_english = self._timedtext_is_english(captured_data.get('timedtext_url'))
                 ts = self._parse_timextext_json(tt_json, vid_url)
-            return ts, vid_url, is_english
+                source['tt'] = True
+            return ts, vid_url, is_english, source
         except Exception as e:
             raise RuntimeError(e)
     
 
-async def main(vid_id=None, vid_url=None, copy=None):
+async def main(vid_id=None, vid_url=None, copy=None, cookies_path=None):
     if not vid_id and not vid_url:
         raise RuntimeError("Must provide either vid_id or vid_url")
     elif vid_url:
         vid_id = urlparse(vid_url).query[2:]
- 
-    scraper = await YoutubeScraper.create()
+    
+    cookies = None
+    if cookies_path:
+        with open(cookies_path) as f:
+            try:
+                cookies = json.load(f)
+            except Exception as e:
+                raise RuntimeError("Unable to load cookies file.")
+
+    scraper = await YoutubeScraper.create(cookies)
     try:
-        ts, url, is_english = await scraper.get_transcript(vid_id)
-        print(f"Transcript Excerpt: {ts[:50]}..., Vid URL: {url}, Is English: {is_english}")
+        ts, url, is_english, source = await scraper.get_transcript(vid_id)
+        print(f"Transcript Excerpt: {ts[:50]}..., Vid URL: {url}, Is English: {is_english}, Is ts: {source.get('ts', False)}, Is tt: {source.get('tt', False)}")
     except Exception as e:
         print(f'Error: {e}, Vid ID: https://www.youtube.com/watch?v={vid_id}')
 
@@ -170,9 +185,10 @@ async def main(vid_id=None, vid_url=None, copy=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--vid_id", help="Youtube video ID")
-    parser.add_argument("-u", "--vid_url", help="Youtube video URL")
-    parser.add_argument("-c", "--copy", action="store_true", help="Flag to copy output to user clipboard")
+    parser.add_argument("-id", "--vid_id", help="Youtube video ID")
+    parser.add_argument("-url", "--vid_url", help="Youtube video URL")
+    parser.add_argument("-c", "--copy", action="store_true", help="Copy output to user clipboard")
+    parser.add_argument("-cookies", "--cookies_path", help="Optional cookies.json file for user authentication")
     args = parser.parse_args()
 
     asyncio.run(main(**vars(args)))
